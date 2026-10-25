@@ -1,0 +1,79 @@
+{
+  "_ghi_chu": "Dữ liệu mẫu cho EduMate. Nạp bằng: python load_sample.py. due_in_days = số ngày kể từ hôm nay (âm = đã quá hạn), due_time = giờ hạn nộp (giờ VN). weekday: 0 = Thứ 2 ... 6 = Chủ nhật. kind: assignment | exam.",
+  "lecturer_email": "gv@edumate.test",
+  "courses": [
+    {
+      "code": "CS102",
+      "name": "Cấu trúc dữ liệu và giải thuật",
+      "sessions": [
+        {"weekday": 1, "start": "13:00", "end": "15:30", "room": "B105"},
+        {"weekday": 4, "start": "07:00", "end": "09:30", "room": "Lab 1"}
+      ],
+      "deadlines": [
+        {"title": "Bài tập 1: Cài đặt Stack và Queue", "kind": "assignment", "due_in_days": -2, "due_time": "23:59"},
+        {"title": "Bài tập 2: Cây nhị phân tìm kiếm", "kind": "assignment", "due_in_days": 3, "due_time": "23:59"},
+        {"title": "Kiểm tra giữa kỳ", "kind": "exam", "due_in_days": 12, "due_time": "07:30"}
+      ]
+    },
+    {
+      "code": "CS201",
+      "name": "Lập trình hướng đối tượng",
+      "sessions": [
+        {"weekday": 0, "start": "13:00", "end": "15:30", "room": "A203"},
+        {"weekday": 2, "start": "13:00", "end": "15:30", "room": "Lab 2"}
+      ],
+      "deadlines": [
+        {"title": "Bài tập 3: Kế thừa và đa hình", "kind": "assignment", "due_in_days": 6, "due_time": "23:59"},
+        {"title": "Thi thực hành giữa kỳ", "kind": "exam", "due_in_days": 10, "due_time": "13:00"},
+        {"title": "Bài tập lớn: Thiết kế lớp quản lý sinh viên", "kind": "assignment", "due_in_days": 14, "due_time": "23:59"}
+      ]
+    },
+    {
+      "code": "CS301",
+      "name": "Cơ sở dữ liệu",
+      "sessions": [
+        {"weekday": 3, "start": "07:00", "end": "09:30", "room": "A104"},
+        {"weekday": 5, "start": "07:00", "end": "09:30", "room": "Lab 3"}
+      ],
+      "deadlines": [
+        {"title": "Bài tập 1: Vẽ ERD cho hệ thống thư viện", "kind": "assignment", "due_in_days": 0, "due_time": "23:59"},
+        {"title": "Bài tập 2: Truy vấn SQL với JOIN và GROUP BY", "kind": "assignment", "due_in_days": 8, "due_time": "23:59"},
+        {"title": "Thi cuối kỳ", "kind": "exam", "due_in_days": 45, "due_time": "07:30"}
+      ]
+    },
+    {
+      "code": "MA201",
+      "name": "Xác suất thống kê",
+      "sessions": [
+        {"weekday": 2, "start": "07:00", "end": "09:30", "room": "B201"}
+      ],
+      "deadlines": [
+        {"title": "Bài tập chương 2: Biến ngẫu nhiên", "kind": "assignment", "due_in_days": 4, "due_time": "23:59"},
+        {"title": "Kiểm tra giữa kỳ", "kind": "exam", "due_in_days": 16, "due_time": "09:30"}
+      ]
+    },
+    {
+      "code": "MA102",
+      "name": "Đại số tuyến tính",
+      "sessions": [
+        {"weekday": 4, "start": "13:00", "end": "15:30", "room": "B202"}
+      ],
+      "deadlines": [
+        {"title": "Bài tập: Ma trận và định thức", "kind": "assignment", "due_in_days": 2, "due_time": "23:59"},
+        {"title": "Bài tập: Không gian vector", "kind": "assignment", "due_in_days": 9, "due_time": "23:59"},
+        {"title": "Thi giữa kỳ", "kind": "exam", "due_in_days": 18, "due_time": "13:00"}
+      ]
+    },
+    {
+      "code": "EN101",
+      "name": "Tiếng Anh chuyên ngành CNTT",
+      "sessions": [
+        {"weekday": 5, "start": "09:30", "end": "11:00", "room": "C101"}
+      ],
+      "deadlines": [
+        {"title": "Viết báo cáo ngắn về một công nghệ mới", "kind": "assignment", "due_in_days": 7, "due_time": "23:59"},
+        {"title": "Thuyết trình nhóm", "kind": "assignment", "due_in_days": 20, "due_time": "09:30"}
+      ]
+    }
+  ]
+}
