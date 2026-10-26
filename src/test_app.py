@@ -114,6 +114,56 @@ class ApiTests(unittest.TestCase):
         S.delete(f"/api/courses/{c1}/enroll")
         self.assertEqual(len(S.get("/api/timetable").get_json()["days"][0]), 1)
 
+    def test_second_lecturer_takes_existing_course(self):
+        client = edumate.app.test_client
+        A, B, C, S = client(), client(), client(), client()
+        reg = lambda c, n, e, r: c.post("/api/register", json={"id_token": f"uid-{e}|{e}|{n}", "name": n, "role": r})
+        for c, n, e, r in [(A, "GV Một", "gv1@y.vn", "lecturer"), (B, "GV Hai", "gv2@y.vn", "lecturer"),
+                           (C, "GV Ba", "gv3@y.vn", "lecturer"), (S, "SV Y", "svy@y.vn", "student")]:
+            self.assertEqual(reg(c, n, e, r).status_code, 201)
+        cid = A.post("/api/courses", json={"code": "PH201", "name": "Vật lý 2"}).get_json()["id"]
+        A.post(f"/api/courses/{cid}/sessions", json={"weekday": 4, "start": "07:00", "end": "09:00"})
+        S.post(f"/api/courses/{cid}/enroll")
+        S.post(f"/api/courses/{cid}/questions", json={"title": "Câu hỏi", "body": "nội dung"})
+        qid = A.get("/api/questions").get_json()["questions"][0]["id"]
+
+        # B chưa phụ trách: không thấy câu hỏi, không trả lời, không thêm lịch/bài tập
+        self.assertEqual(B.get("/api/questions").get_json()["questions"], [])
+        self.assertEqual(B.post(f"/api/questions/{qid}/answers", json={"body": "x"}).status_code, 403)
+        self.assertEqual(B.post(f"/api/courses/{cid}/sessions", json={"weekday": 1, "start": "07:00", "end": "09:00"}).status_code, 403)
+        mine = lambda cl: next(c for c in cl.get("/api/courses").get_json()["courses"] if c["id"] == cid)
+        self.assertEqual((mine(B)["mine"], mine(B)["is_owner"], mine(B)["deadlines"]), (False, False, []))
+        self.assertEqual(S.post(f"/api/courses/{cid}/teach").status_code, 403)  # sinh viên không nhận phụ trách được
+
+        # C đang dạy môn khác trùng giờ -> không nhận được
+        other = C.post("/api/courses", json={"code": "PH203", "name": "y"}).get_json()["id"]
+        C.post(f"/api/courses/{other}/sessions", json={"weekday": 4, "start": "08:00", "end": "10:00"})
+        self.assertEqual(C.post(f"/api/courses/{cid}/teach").status_code, 409)
+
+        # B nhận phụ trách -> thấy và trả lời câu hỏi, thêm lịch, bài tập, kỳ thi
+        self.assertEqual(B.post(f"/api/courses/{cid}/teach").status_code, 201)
+        self.assertEqual(B.post(f"/api/courses/{cid}/teach").status_code, 409)
+        self.assertEqual([q["id"] for q in B.get("/api/questions").get_json()["questions"]], [qid])
+        self.assertEqual(B.post(f"/api/questions/{qid}/answers", json={"body": "B trả lời"}).status_code, 201)
+        self.assertEqual(B.post(f"/api/courses/{cid}/sessions", json={"weekday": 2, "start": "13:00", "end": "15:00"}).status_code, 201)
+        due = (datetime.now(edumate.VN_TZ) + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M")
+        for kind in ("assignment", "exam"):
+            self.assertEqual(B.post(f"/api/courses/{cid}/deadlines", json={"title": f"t-{kind}", "kind": kind, "due_at": due}).status_code, 201)
+        c = mine(B)
+        self.assertEqual((c["mine"], c["is_owner"], sorted(d["kind"] for d in c["deadlines"])), (True, False, ["assignment", "exam"]))
+        self.assertEqual(c["lecturer_name"], "GV Một, GV Hai")
+        self.assertEqual(len(mine(A)["deadlines"]), 2)  # chủ môn cũng thấy
+        self.assertEqual(mine(S)["deadlines"], [])  # sinh viên không nhận danh sách quản lý
+        self.assertEqual(len(S.get("/api/deadlines").get_json()["deadlines"]), 2)
+        self.assertEqual(S.get("/api/questions").get_json()["questions"][0]["answers"][0]["author_name"], "GV Hai")
+
+        # chủ môn không thể thôi phụ trách; B thôi thì mất quyền
+        self.assertEqual(A.delete(f"/api/courses/{cid}/teach").status_code, 403)
+        self.assertEqual(B.delete(f"/api/courses/{cid}/teach").status_code, 200)
+        self.assertEqual(B.delete(f"/api/courses/{cid}/teach").status_code, 409)
+        self.assertEqual(B.get("/api/questions").get_json()["questions"], [])
+        self.assertEqual(B.post(f"/api/courses/{cid}/deadlines", json={"title": "x", "kind": "exam", "due_at": due}).status_code, 403)
+
     def test_login_logout(self):
         c = edumate.app.test_client()
         self.assertEqual(c.post("/api/login", json={"id_token": "bad"}).status_code, 401)

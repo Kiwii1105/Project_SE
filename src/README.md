@@ -56,6 +56,7 @@ thông tin môn học thì sinh viên thấy ngay, không có dữ liệu cũ b�
 | GET | `/api/config` (cấu hình web Firebase cho trình duyệt) | — |
 | POST | `/api/register` `{id_token, name, role}` · `/api/login` `{id_token}` · `/api/logout` · GET `/api/me` | — |
 | GET / POST | `/api/courses` | đăng nhập / giảng viên |
+| POST / DELETE | `/api/courses/<id>/teach` (nhận / thôi phụ trách một môn đã có) | giảng viên |
 | POST / DELETE | `/api/courses/<id>/sessions`, `/api/sessions/<id>` | giảng viên phụ trách |
 | POST / DELETE | `/api/courses/<id>/enroll` | sinh viên |
 | GET | `/api/timetable`, `/api/deadlines` | đăng nhập |
@@ -64,6 +65,12 @@ thông tin môn học thì sinh viên thấy ngay, không có dữ liệu cũ b�
 | GET | `/api/questions?course_id=` | thành viên môn học |
 | POST | `/api/courses/<id>/questions` | sinh viên đã đăng ký |
 | POST | `/api/questions/<id>/answers` | sinh viên đã đăng ký hoặc giảng viên phụ trách |
+
+## Giảng viên phụ trách môn
+Một môn có thể do nhiều giảng viên phụ trách: người tạo môn (`lecturer_id`) và những người bấm
+**Nhận phụ trách** (`lecturer_ids`). Giảng viên phụ trách mới xem/trả lời được câu hỏi của sinh viên và
+thêm lịch học, bài tập, kỳ thi cho môn đó. Nhận môn trùng giờ với lịch dạy hiện có sẽ bị từ chối.
+Các môn nạp từ `seed.py` / `load_sample.py` thuộc giảng viên demo, nên giảng viên khác cần nhận phụ trách.
 
 ## Việc nên làm tiếp
 - Ai cũng tự chọn được vai trò giảng viên khi đăng ký; nên dùng mã mời hoặc duyệt, rồi chuyển vai trò sang Firebase custom claims.

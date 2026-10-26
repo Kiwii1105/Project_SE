@@ -33,7 +33,7 @@ VN_TZ = timezone(timedelta(hours=7))  # Asia/Ho_Chi_Minh (không có DST)
 WEEKDAYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "static"), static_url_path="/static")
-app.secret_key = os.environ.get("SECRET_KEY") or "dev-only-change-me"
+app.secret_key = os.environ.get("SECRET_KEY") or "dev-only-change-me"  # "or": .env để trống cũng dùng mặc định; đặt SECRET_KEY khi deploy
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 
 store = make_store()
@@ -165,9 +165,15 @@ def get_course(cid):
     return c
 
 
+def teacher_ids(course):
+    """Giảng viên phụ trách môn: người tạo môn (lecturer_id) + các giảng viên nhận thêm (lecturer_ids)."""
+    return [course["lecturer_id"]] + [i for i in course.get("lecturer_ids", []) if i != course["lecturer_id"]]
+
+
 def own_course(cid):
+    """Môn mà giảng viên hiện tại phụ trách (được xem câu hỏi và thêm lịch học, bài tập, kỳ thi)."""
     c = get_course(cid)
-    if c["lecturer_id"] != g.user["id"]:
+    if g.user["id"] not in teacher_ids(c):
         raise ApiError("Bạn không phụ trách môn học này", 403)
     return c
 
@@ -175,14 +181,14 @@ def own_course(cid):
 def is_member(user, course_id):
     if user["role"] == "lecturer":
         c = store.get("courses", course_id)
-        return bool(c) and c["lecturer_id"] == user["id"]
+        return bool(c) and user["id"] in teacher_ids(c)
     return store.get("enrollments", f"{user['id']}_{course_id}") is not None
 
 
 def my_course_ids(user):
     if user["role"] == "student":
         return [e["course_id"] for e in store.where("enrollments", student_id=user["id"])]
-    return [c["id"] for c in store.where("courses", lecturer_id=user["id"])]
+    return [c["id"] for c in store.all("courses") if user["id"] in teacher_ids(c)]
 
 
 def courses_map(ids):
@@ -246,13 +252,16 @@ def verify_token(id_token):
         raise ApiError("Thiếu id_token", 401)
     try:
         claims = google_id_token.verify_firebase_token(
-            id_token, google_requests.Request(), audience=project_id, clock_skew_in_seconds=10)
-    except ValueError:
+            id_token, google_requests.Request(), audience=project_id, clock_skew_in_seconds=60)  # cho phép đồng hồ máy lệch tới 60 giây
+    except ValueError as e:
+        app.logger.warning("Firebase token bị từ chối: %s", e)  # lý do thật hiện trong cửa sổ terminal
         raise ApiError("Phiên đăng nhập Firebase không hợp lệ hoặc đã hết hạn", 401)
     except GoogleAuthError:
         raise ApiError("Không kết nối được máy chủ xác thực của Google, hãy thử lại", 503)
     if (not claims or claims.get("iss") != f"https://securetoken.google.com/{project_id}"
             or not claims.get("sub") or not claims.get("email")):
+        app.logger.warning("Firebase token thiếu/lệch claim: iss=%s email=%s", (claims or {}).get("iss"),
+                           (claims or {}).get("email"))
         raise ApiError("Token không hợp lệ", 401)
     return claims
 
@@ -331,17 +340,29 @@ def list_courses():
     enrollments = store.all("enrollments")
     counts = Counter(e["course_id"] for e in enrollments)
     enrolled = {e["course_id"] for e in enrollments if e["student_id"] == u["id"]}
-    lecturer_names = {}
+    mine_ids = {c["id"] for c in courses if u["id"] in teacher_ids(c)} if u["role"] == "lecturer" else set()
+    # Chỉ giảng viên phụ trách mới cần danh sách bài tập/kỳ thi của môn (để quản lý, xóa)
+    deadlines = {}
+    if mine_ids:
+        for d in store.all("deadlines"):
+            if d["course_id"] in mine_ids:
+                deadlines.setdefault(d["course_id"], []).append(
+                    {"id": d["id"], "title": d["title"], "kind": d["kind"], "due_at": d["due_at"]})
+    names = {}
+
+    def name_of(uid):
+        if uid not in names:
+            names[uid] = (store.get("users", uid) or {}).get("name", "?")
+        return names[uid]
+
     out = []
     for c in courses:
-        lid = c["lecturer_id"]
-        if lid not in lecturer_names:
-            lecturer_names[lid] = (store.get("users", lid) or {}).get("name", "?")
         out.append({
             "id": c["id"], "code": c["code"], "name": c["name"],
-            "lecturer_name": lecturer_names[lid], "student_count": counts[c["id"]],
-            "mine": lid == u["id"], "enrolled": c["id"] in enrolled,
+            "lecturer_name": ", ".join(name_of(i) for i in teacher_ids(c)), "student_count": counts[c["id"]],
+            "mine": c["id"] in mine_ids, "is_owner": c["lecturer_id"] == u["id"], "enrolled": c["id"] in enrolled,
             "sessions": sorted(by_course.get(c["id"], []), key=lambda s: (s["weekday"], s["start_min"])),
+            "deadlines": sorted(deadlines.get(c["id"], []), key=lambda d: d["due_at"]),
         })
     return jsonify(courses=out)
 
@@ -358,6 +379,33 @@ def create_course():
     except AlreadyExists:
         raise ApiError("Mã môn học đã tồn tại", 409)
     return jsonify(id=cid), 201
+
+
+@app.post("/api/courses/<cid>/teach")
+@require("lecturer")
+def take_course(cid):
+    """Nhận phụ trách thêm một môn đã có: từ đó xem/trả lời câu hỏi của sinh viên và
+    thêm lịch học, bài tập, kỳ thi cho môn. Nhiều giảng viên có thể cùng phụ trách một môn."""
+    c = get_course(cid)
+    if g.user["id"] in teacher_ids(c):
+        raise ApiError("Bạn đã phụ trách môn này", 409)
+    conflicts = find_conflicts(sessions_of([cid]), sessions_of(my_course_ids(g.user)))
+    if conflicts:
+        raise ApiError(conflict_message(conflicts[0][1], "Trùng lịch dạy"), 409)
+    store.array_append("courses", cid, "lecturer_ids", g.user["id"])
+    return jsonify(ok=True), 201
+
+
+@app.delete("/api/courses/<cid>/teach")
+@require("lecturer")
+def leave_course(cid):
+    c = get_course(cid)
+    if c["lecturer_id"] == g.user["id"]:
+        raise ApiError("Bạn là người tạo môn nên không thể thôi phụ trách", 403)
+    if g.user["id"] not in teacher_ids(c):
+        raise ApiError("Bạn không phụ trách môn này", 409)
+    store.array_remove("courses", cid, "lecturer_ids", g.user["id"])
+    return jsonify(ok=True)
 
 
 @app.post("/api/courses/<cid>/sessions")

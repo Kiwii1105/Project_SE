@@ -50,7 +50,13 @@ class MemoryStore:
         self._col(col).pop(doc_id, None)
 
     def array_append(self, col, doc_id, field, item):
-        self._col(col)[doc_id].setdefault(field, []).append(item)
+        arr = self._col(col)[doc_id].setdefault(field, [])
+        if item not in arr:  # giống ArrayUnion của Firestore: không thêm trùng
+            arr.append(item)
+
+    def array_remove(self, col, doc_id, field, item):
+        doc = self._col(col)[doc_id]
+        doc[field] = [x for x in doc.get(field, []) if x != item]
 
 
 class FirestoreStore:
@@ -106,6 +112,10 @@ class FirestoreStore:
     def array_append(self, col, doc_id, field, item):
         from google.cloud.firestore_v1 import ArrayUnion
         self.db.collection(col).document(doc_id).update({field: ArrayUnion([item])})
+
+    def array_remove(self, col, doc_id, field, item):
+        from google.cloud.firestore_v1 import ArrayRemove
+        self.db.collection(col).document(doc_id).update({field: ArrayRemove([item])})
 
 
 def make_store():
