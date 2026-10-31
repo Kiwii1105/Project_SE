@@ -1,0 +1,10 @@
+# EduMate - thư viện Python (Python 3.10 trở lên)
+# Cài đặt:  pip install -r requirements.txt
+
+Flask>=3.0            # web framework, phục vụ API và static/index.html
+firebase-admin>=6.5   # Firestore (database) + tạo tài khoản mẫu bằng seed.py
+google-auth>=2.20     # xác minh ID token do Firebase Authentication cấp
+requests>=2.31        # transport HTTP mà google-auth dùng khi tải chứng chỉ Firebase
+python-dotenv>=1.0    # đọc cấu hình từ file .env
+
+# Test (python -m unittest) chỉ dùng thư viện chuẩn của Python, không cần cài thêm.
