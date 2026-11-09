@@ -43,7 +43,7 @@ Cover normal flows, invalid inputs, boundaries, permissions and state changes. R
 
 ## Environment and test data
 
-Install `src/requirements.txt` in `.venv`. For the [interface walkthrough](README.md#interface-walkthrough), use Chromium and the dedicated Firebase QA configuration in `src/.env` with Email/Password enabled. Use test-only student and lecturer accounts, a fresh registration email, a sample course with one session and an assignment due in the future. Keep the server running between role switches because MemoryStore resets on restart.
+Install `src/requirements.txt` in `.venv`. For the [interface walkthrough](test-environment-setup.md#interface-walkthrough), use Chromium and the dedicated Firebase QA configuration in `src/.env` with Email/Password enabled. Use test-only student and lecturer accounts, a fresh registration email, a sample course with one session and an assignment due in the future. Keep the server running between role switches because MemoryStore resets on restart.
 
 ```sh
 EDUMATE_STORE=memory PORT=5018 .venv/bin/python src/app.py
