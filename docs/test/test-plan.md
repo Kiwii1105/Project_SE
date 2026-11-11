@@ -43,7 +43,7 @@ Cover normal flows, invalid inputs, boundaries, permissions and state changes. R
 
 ## Environment and test data
 
-Install `src/requirements.txt` in `.venv`. For the [interface walkthrough](test-environment-setup.md#interface-walkthrough), use Chromium and the dedicated Firebase QA configuration in `src/.env` with Email/Password enabled. Use test-only student and lecturer accounts, a fresh registration email, a sample course with one session and an assignment due in the future. Keep the server running between role switches because MemoryStore resets on restart.
+Install `src/requirements.txt` in `.venv`. For the interface walkthrough, use Chromium and the dedicated Firebase QA configuration in `src/.env` with Email/Password enabled. Use test-only student and lecturer accounts, a fresh registration email, a sample course with one session and an assignment due in the future. Keep the server running between role switches because MemoryStore resets on restart.
 
 ```sh
 EDUMATE_STORE=memory PORT=5018 .venv/bin/python src/app.py
@@ -63,3 +63,5 @@ Run the existing unit and API suite from the repository root. Confirm the token 
 - **Proposed exit** · Execute every Must variant, achieve at least 90% pass, resolve all Critical and High defects, and review NFR evidence. Count Blocked and Not Run variants as non-passing.
 - **Results** · Record the build, environment, case variant, expected result, actual result and evidence.
 - **Defects** · Record reproduction steps, severity, priority, owner and fix link. Retest before closing and reopen if the fix fails. Raise unclear requirements for clarification.
+
+[Interface smoke test results and recording](reports/2026-11-11-ui-smoke-test.md).
