@@ -33,8 +33,16 @@ VN_TZ = timezone(timedelta(hours=7))  # Asia/Ho_Chi_Minh (không có DST)
 WEEKDAYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "static"), static_url_path="/static")
-app.secret_key = os.environ.get("SECRET_KEY") or "dev-only-change-me"  # "or": .env để trống cũng dùng mặc định; đặt SECRET_KEY khi deploy
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key and os.environ.get("FLASK_DEBUG") != "1":
+    raise RuntimeError("SECRET_KEY phải được cấu hình khi chạy ngoài chế độ debug")
+app.secret_key = secret_key or "dev-only-change-me"
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_DEBUG") != "1",
+    MAX_CONTENT_LENGTH=1 * 1024 * 1024,
+)
 
 store = make_store()
 
@@ -225,6 +233,17 @@ def conflict_message(e, what="Trùng lịch"):
 # --------------------------------------------------------------------------
 # TÀI KHOẢN
 # --------------------------------------------------------------------------
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if request.path == "/" or request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")

@@ -1,5 +1,7 @@
-Flask>=3.0
+Flask>=3.0,<4
+gunicorn>=22,<24
 firebase-admin>=6.5
 google-auth>=2.20
 requests>=2.31
 python-dotenv>=1.0
+gunicorn>=22.0

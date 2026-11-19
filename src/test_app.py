@@ -181,6 +181,12 @@ class ApiTests(unittest.TestCase):
         u = c.get("/api/me").get_json()["user"]
         self.assertEqual((u["role"], u["email"], u["name"]), ("student", "new@x.vn", "new"))
 
+    def test_security_headers_and_private_api_cache(self):
+        response = edumate.app.test_client().get("/api/config")
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+
     def test_config_endpoint(self):
         c = edumate.app.test_client()
         cfg = c.get("/api/config").get_json()
