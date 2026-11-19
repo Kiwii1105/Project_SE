@@ -10,13 +10,24 @@ Stack: HTML/CSS/JS thuần · Flask · Firebase Authentication (đăng nhập) �
 4. `cp .env.example .env` rồi điền các giá trị trên. Authentication và Firestore phải thuộc **cùng một Firebase project**.
 5. Khi deploy: thêm tên miền vào Authentication → Settings → Authorized domains (`localhost` có sẵn), đặt `SECRET_KEY` mạnh và `FIREBASE_CREDENTIALS_JSON` thay cho file.
 
-## Chạy
+## Chạy local
 ```bash
 pip install -r requirements.txt
-python seed.py        # (tùy chọn) dữ liệu demo + 2 tài khoản demo trên Firebase Auth (mật khẩu 123456)
 python app.py         # mở http://127.0.0.1:5000
 python -m unittest -v # test, chạy bằng database RAM, không đụng Firebase thật
 ```
+
+Chỉ chạy `python seed.py` trên Firebase project dùng thử: script tạo dữ liệu thật và tài khoản demo mật khẩu yếu.
+
+## Deploy miễn phí/đơn giản trên Render
+1. Đẩy repository lên GitHub; kiểm tra `.env`, service-account JSON, database và khóa riêng không được commit.
+2. Render → **New → Web Service**, kết nối repository. Chọn thư mục gốc `src` nếu tạo service từ monorepo.
+3. Runtime **Python**; Build command: `pip install -r requirements.txt`; Start command: `gunicorn app:app`.
+4. Thêm Environment Variables: `SECRET_KEY` (chuỗi ngẫu nhiên dài), `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_APP_ID`, `FIREBASE_CREDENTIALS_JSON` (toàn bộ JSON service account, một biến secret). Đặt `EDUMATE_STORE=firestore`; không đặt `FLASK_DEBUG=1`.
+5. Deploy, mở URL `*.onrender.com`; Firebase Console → Authentication → Settings → Authorized domains, thêm hostname Render (không gồm `https://` hay đường dẫn).
+6. Kiểm tra đăng ký/đăng nhập, tạo dữ liệu kiểm thử và xác nhận dữ liệu tồn tại trong Firestore trước khi chia sẻ URL.
+
+Render free web service có thể sleep khi không hoạt động và khởi động chậm; dùng gói phù hợp nếu cần truy cập ổn định. Firestore là nơi lưu dữ liệu dùng chung. `SECRET_KEY` phải giữ ổn định giữa các deploy để phiên cookie không bị mất.
 
 ## Luồng đăng nhập
 ```
