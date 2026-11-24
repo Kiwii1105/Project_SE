@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 os.environ["EDUMATE_STORE"] = "memory"  # test không đụng tới Firebase thật
 os.environ["FIREBASE_API_KEY"] = "test-key"
 os.environ["FIREBASE_PROJECT_ID"] = "edumate-test"
+os.environ["FIREBASE_AUTH_DOMAIN"] = "edumate-test.firebaseapp.com"
 
 import app as edumate  # noqa: E402  (phải import sau khi đặt biến môi trường)
 
