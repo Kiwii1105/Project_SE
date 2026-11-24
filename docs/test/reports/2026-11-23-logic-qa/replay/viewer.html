@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if code %}{{ code }} · {% endif %}EduMate QA</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; color: #18352d; background: #eff4f1; }
+    body { margin: 0; }
+    main { width: min(880px, calc(100% - 34px)); margin: 36px auto; }
+    h1 { line-height: 1.16; font-size: clamp(28px, 5vw, 42px); }
+    a { color: #12644e; }
+    a:focus-visible { outline: 3px solid #176bba; outline-offset: 4px; }
+    .cases { list-style: none; padding: 0; display: grid; gap: 8px; }
+    .case, dl { background: white; border: 1px solid #ccdcd2; border-radius: 12px; padding: 13px 16px; }
+    .case a { display: flex; align-items: baseline; gap: 12px; text-decoration: none; }
+    .case a:hover { text-decoration: underline; }
+    .case strong { flex: 0 0 58px; font-variant-numeric: tabular-nums; }
+    .actions { display: flex; gap: 16px; flex-wrap: wrap; }
+    dt { font-weight: 650; margin-top: 12px; }
+    dt:first-child { margin-top: 0; }
+    dd { margin: 2px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .status { font-weight: 700; }
+  </style>
+</head>
+<body><main>
+{% if cases %}
+  <h1>Chạy lại các ca kiểm thử EduMate</h1>
+  <p>Commit <code>{{ revision }}</code> · Dữ liệu mẫu trong RAM</p>
+  <ul class="cases">
+  {% for id, case in cases.items() %}
+    <li class="case"><a href="{{ url_for('run_case', code=id) }}"><strong>{{ id }}</strong><span>{{ case[0] }}</span></a></li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <a href="{{ url_for('menu') }}">← Danh sách ca kiểm thử</a>
+  <h1>{{ code }} · {{ title }}</h1>
+  {% if error %}
+    <p class="status">Không chạy được ca kiểm thử</p>
+    <p>{{ error }}</p>
+  {% else %}
+    <p class="status">{{ 'Đã tái hiện hành vi' if result.reproduced else 'Không tái hiện trên checkout này' }}</p>
+    <dl>
+    {% for label, value in result.facts.items() %}
+      <dt>{{ label }}</dt><dd>{% if value is sameas true %}Có{% elif value is sameas false %}Không{% elif value is none %}Không có{% elif value is iterable and value is not string %}{{ value | join('\n') }}{% else %}{{ value }}{% endif %}</dd>
+    {% endfor %}
+    </dl>
+  {% endif %}
+  <div class="actions">
+    <a href="{{ url_for('run_case', code=code) }}">Chạy lại</a>
+    {% if result and result.role %}<a href="{{ url_for('app_view', token=token) }}">Xem trên giao diện EduMate</a>{% endif %}
+    <a href="{{ url_for('image',name=code ~ '.jpg') }}">Xem ảnh ghi nhận ban đầu</a>
+  </div>
+{% endif %}
+</main></body></html>
